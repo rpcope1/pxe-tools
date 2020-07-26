@@ -24,9 +24,10 @@ class HandlerException(TFTPException):
 
 
 class AbstractReadHandler(object):
-    def __init__(self, filename, mode):
+    def __init__(self, filename, mode, remote_address):
         self.filename = filename
         self.mode = mode
+        self.remote_address = remote_address
         
     @property
     def length(self):
@@ -62,8 +63,8 @@ def disable_factory(*args, **kwargs):
 
 
 class BasicReadHandler(AbstractReadHandler):
-    def __init__(self, filename, mode, base_dir="/"):
-        super(BasicReadHandler, self).__init__(filename, mode)
+    def __init__(self, filename, mode, remote_address, base_dir="/"):
+        super(BasicReadHandler, self).__init__(filename, mode, remote_address)
         self.base_dir = base_dir
         self._file_obj = None
         self._last_pos = None
@@ -110,7 +111,7 @@ class BasicReadHandler(AbstractReadHandler):
 
     @classmethod
     def factory(cls, filename, mode, remote_addr, base_dir="/"):
-        return cls(filename, mode, base_dir=base_dir)
+        return cls(filename, mode, remote_addr, base_dir=base_dir)
 
 
 class TFTPServerSession(object):
@@ -456,7 +457,7 @@ class TFTPServer(object):
                         )
                         self.reactor.unregister(session_fd)
                         self.session_map.pop(session_fd).close()
-            self.server_socket.shutdown(socket.SOCK_DGRAM)
+            # self.server_socket.shutdown(socket.SOCK_DGRAM)
 
         finally:
             for session in self.session_map.values():
@@ -471,11 +472,3 @@ class TFTPServer(object):
 
     def shutdown(self):
         self.shutdown_event.set()
-
-
-if __name__ == "__main__":
-    root_logger = logging.getLogger('')
-    root_logger.addHandler(logging.StreamHandler())
-    root_logger.setLevel(logging.DEBUG)
-    server = TFTPServer(BasicReadHandler.factory, disable_factory, "127.0.0.1", port=6969)
-    server.serve_forever()
